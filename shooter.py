@@ -35,7 +35,7 @@ def draw_bg():   #function to draw the bg
     
  
 class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits from the pygame sprite class
-    def __init__(self, char_type ,player_x, player_y, scale,speed):
+    def __init__(self, char_type ,player_x, player_y, scale,speed,ammo):
         pygame.sprite.Sprite.__init__(self)   #initialize the sprite class
         self.alive = True   #set the alive variable to true
         self.char_type = char_type   #set the character type
@@ -121,8 +121,9 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
  
     def shoot(self):
         #shoot bullets
-        if self.shoot_cooldown == 0:   #if the shoot cooldown is 0
+        if self.shoot_cooldown == 0 and self.ammo > 0:   #if the shoot cooldown is 0 and the player has ammo
             self.shoot_cooldown = 20   #set the shoot cooldown to 20
+            self.ammo -= 1   #decrease the ammo by 1
             bullet = Bullet(self.player_rect.centerx + (0.6 * self.player_rect.size[0] * self.direction), self.player_rect.centery, self.direction)   #create a bullet object
             bullet_group.add(bullet)   #add the bullet to the bullet group
 
@@ -168,8 +169,8 @@ class Bullet(pygame.sprite.Sprite):   #create a bullet class that inherits from 
 
 bullet_group = pygame.sprite.Group()   #create a group for the bullets
 
-player = Soldier('player',200, 200, 3,5)   #create a player object
-enemy = Soldier('enemy',400, 200, 3,5) 
+player = Soldier('player',200, 200, 3,5,20)   #create a player object
+enemy = Soldier('enemy',400, 200, 3,5,20) 
 # player2= Soldier(400, 200, 3)   #create a second player object
  
  
