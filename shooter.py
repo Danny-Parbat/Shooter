@@ -15,6 +15,7 @@ fps=60
 
 #define game variables
 GRAVITY = 0.75   #set the gravity variable
+TILE_SIZE = 40  #set the tile size variable
  
 #define player actions var
 moving_left = False
@@ -195,11 +196,12 @@ class Bullet(pygame.sprite.Sprite):   #create a bullet class that inherits from 
                 player.health -= 5   #decrease the player's health by 10
                 
                 self.kill()   #remove the bullet from the game
-        if pygame.sprite.spritecollide(enemy, bullet_group, False):   #if the bullet collides with the enemy
-            if enemy.alive:   #if the enemy is alive
-                enemy.health -= 25   #decrease the enemy's health by 10
-                print(enemy.health)   #print the enemy's health
-                self.kill()   #remove the bullet from the game    
+        for enemy in enemy_group:   #loop through the enemies
+            if pygame.sprite.spritecollide(enemy, bullet_group, False):   #if the bullet collides with the enemy
+                if enemy.alive:   #if the enemy is alive
+                    enemy.health -= 25   #decrease the enemy's health by 10
+                    print(enemy.health)   #print the enemy's health
+                    self.kill()   #remove the bullet from the game    
 
 
 class Grenade(pygame.sprite.Sprite):   #create a bullet class that inherits from the pygame sprite class
@@ -236,13 +238,59 @@ class Grenade(pygame.sprite.Sprite):   #create a bullet class that inherits from
         self.timer -= 1   #decrease the timer by 1
         if self.timer <= 0:   #if the timer is less than or equal to 0
             self.kill()   #remove the grenade from the game
+            explosion = Explosion(self.rect.x, self.rect.y, 0.5)   #create an explosion object
+            explosion_group.add(explosion)   #add the explosion to the explosion group
+            #do damage to anyone that is nearby
+            if abs(self.rect.centerx - player.player_rect.centerx) < TILE_SIZE * 2 and \
+                abs(self.rect.centery - player.player_rect.centery) < TILE_SIZE * 2:
+                player.health -= 50   #decrease the player's health by 50
+            for enemy in enemy_group:   #loop through the enemies
+                
+            
+                if abs(self.rect.centerx - enemy.player_rect.centerx) < TILE_SIZE * 2 and \
+                    abs(self.rect.centery - enemy.player_rect.centery) < TILE_SIZE * 2:
+                    enemy.health -= 50   #decrease the enemy's health by 50
 
 
+class Explosion(pygame.sprite.Sprite):   #create a bullet class that inherits from the pygame sprite class
+    def __init__(self, x, y,scale):
+        pygame.sprite.Sprite.__init__(self)   #initialize the sprite class
+        self.images=[]
+        for num in range (1,6):
+            img = pygame.image.load(f'graphics/explosion/exp{num}.png').convert_alpha()   #load the explosion images
+            img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))   #scale the explosion images
+            self.images.append(img)   #add the explosion images to the images list
+        self.frame_index=0   #set the frame index to 0
+        self.image = self.images[self.frame_index]   #set the image of the explosion
+        self.rect = self.image.get_rect()   #create a rectangle for the explosion
+        self.rect.center = (x,y)   #set the position of the explosion
+        self.counter = 0   #set the counter to 0
+
+    def update(self):
+        EXPLOSION_SPEED = 4   #set the explosion speed
+        #update explosion animation
+        self.counter += 1   #increase the counter by 1
+
+        if self.counter >= EXPLOSION_SPEED:   #if the counter is greater than or equal to the explosion speed
+            self.counter = 0   #reset the counter to 0
+            self.frame_index += 1   #increase the frame index by 1
+            #if the animation is complete, delete the explosion
+            if self.frame_index >= len(self.images):   #if the frame index is greater than or equal to the length of the images list
+                self.kill()   #remove the explosion from the game
+            else:
+                self.image = self.images[self.frame_index]   #set the image of the explosion to the current frame in the images list
+    
+
+enemy_group = pygame.sprite.Group()   #create a group for the enemies
 bullet_group = pygame.sprite.Group()   #create a group for the bullets
 grenade_group = pygame.sprite.Group()   #create a group for the grenades
+explosion_group = pygame.sprite.Group()   #create a group for the explosions
 
 player = Soldier('player',200, 200, 3,5,20,5)   #create a player object
 enemy = Soldier('enemy',400, 200, 3,5,20,0) 
+enemy2 = Soldier('enemy',300, 300, 3,5,20,0)
+enemy_group.add(enemy)   #add the enemy to the enemy group
+enemy_group.add(enemy2)   #add the second enemy to the enemy group
 # player2= Soldier(400, 200, 3)   #create a second player object
  
  
@@ -254,11 +302,17 @@ while run: #keep running the game
     player.update()
     player.draw()   #draw the player on the screen
     
-    enemy.update()
-    enemy.draw()   #draw the enemy on the screen
-    
+    for enemy in enemy_group:   #loop through the enemies
+        enemy.update()
+        enemy.draw()   #draw the enemy on the screen
+        
+        enemy2.update()
+        enemy2.draw()   #draw the second enemy on the screen
+        
     #update and draw groups
     bullet_group.update()   #update the bullets
+    explosion_group.update() 
+    explosion_group.draw(screen)   #draw the explosions on the screen
     bullet_group.draw(screen)   #draw the bullets on the screen
     grenade_group.update()   #update the grenades
     grenade_group.draw(screen)   #draw the grenades on the screen
