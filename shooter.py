@@ -219,6 +219,29 @@ class ItemBox(pygame.sprite.Sprite):   #create a bullet class that inherits from
             self.kill()   #remove the item box from the game
 
 
+class HealthBar():   #create a health bar class
+    def __init__(self, x, y, health, max_health):
+        self.x = x   #set the x position of the health bar
+        self.y = y   #set the y position of the health bar
+        self.health = health   #set the health of the health bar
+        self.max_health = max_health   #set the max health of the health bar
+
+    def draw(self, health):
+        #update with new health
+        self.health = health   #set the health of the health bar to the player's health
+
+        pygame.draw.rect(screen, RED, (self.x, self.y, 150, 20))   #draw a red rectangle for the background of the health bar
+        pygame.draw.rect(screen, GREEN, (self.x, self.y, 150*ratio, 20))   #draw a red rectangle for the background of the health bar
+        
+        
+    def draw(self, health):
+        #update with new health
+        self.health = health   #set the health of the health bar to the player's health
+        #calculate health ratio
+        ratio = self.health / self.max_health   #calculate the ratio of the player's health to the max health
+        pygame.draw.rect(screen, (255,0,0), (self.x, self.y, 150, 20))   #draw a red rectangle for the background of the health bar
+        pygame.draw.rect(screen, (0,255,0), (self.x, self.y, 150 * ratio, 20))   #draw a green rectangle for the foreground of the health bar
+
 class Bullet(pygame.sprite.Sprite):   #create a bullet class that inherits from the pygame sprite class
     def __init__(self, x, y, direction):
         pygame.sprite.Sprite.__init__(self)   #initialize the sprite class
@@ -340,7 +363,9 @@ item_box_group.add(ammo_box)   #add the ammo item box to the item box
 grenade_box = ItemBox('Grenade', 400, 260)   #create a grenade item box
 item_box_group.add(grenade_box)   #add the grenade item box to the item box
 
+
 player = Soldier('player',200, 200, 3,5,20,5)   #create a player object
+health_bar = HealthBar(10, 10, player.health, player.max_health)   #create a health bar object
 enemy = Soldier('enemy',400, 200, 3,5,20,0) 
 enemy2 = Soldier('enemy',300, 300, 3,5,20,0)
 enemy_group.add(enemy)   #add the enemy to the enemy group
@@ -352,6 +377,8 @@ run = True
 while run: #keep running the game
     clock.tick(fps)   #set the fps
     draw_bg()   #draw the background
+    #show player health
+    health_bar.draw(player.health)   #draw the health bar on the screen
 
     #show ammo
     draw_text('AMMO:', font, WHITE, 10, 35)   #draw the ammo text on the screen
@@ -366,7 +393,7 @@ while run: #keep running the game
  
     player.update()
     player.draw()   #draw the player on the screen
-    
+
     for enemy in enemy_group:   #loop through the enemies
         enemy.update()
         enemy.draw()   #draw the enemy on the screen
