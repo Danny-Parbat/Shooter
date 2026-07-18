@@ -43,6 +43,8 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
         self.ammo = ammo  #set the ammo of the player
         self.start_ammo = ammo   #set the starting ammo of the player
         self.shoot_cooldown = 0   #set the shoot cooldown to 0
+        self.health = 100   #set the health of the player
+        self.max_health = self.health   #set the max health of the player
         self.vel_y = 0   #set the vertical velocity of the player
         self.direction = 1   #set the direction of the player
         self.jump=False
@@ -71,6 +73,7 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
         self.player_img=self.animation_list[self.action][self.frame_index]   #set the player image to the first image in the animation list
         #self.player_img = pygame.image.load(f'graphics/{self.char_type}/Idle/0.png')   #load the player image
         self.player_rect = self.player_img.get_rect(center = (player_x, player_y))   #create a rectangle for the player
+        self.rect = self.player_rect   #set the rect of the player to the player rect
         #self.player_img = pygame.transform.scale(self.player_img, (int(self.player_img.get_width()*scale), int(self.player_img.get_height()*scale)))   #scale the player image
  
     def update(self):
@@ -166,6 +169,20 @@ class Bullet(pygame.sprite.Sprite):   #create a bullet class that inherits from 
         #check if bullet has gone off screen
         if self.rect.right < 0 or self.rect.left > screen_width:   #if the bullet is off the screen
             self.kill()   #remove the bullet from the game
+
+        #check for collision with characters
+        if pygame.sprite.spritecollide(player, bullet_group, False):   #if the bullet
+            if player.alive:   #if the player is alive
+                player.health -= 5   #decrease the player's health by 10
+                
+                self.kill()   #remove the bullet from the game
+        if pygame.sprite.spritecollide(enemy, bullet_group, False):   #if the bullet collides with the enemy
+            if enemy.alive:   #if the enemy is alive
+                enemy.health -= 25   #decrease the enemy's health by 10
+                print(enemy.health)   #print the enemy's health
+                self.kill()   #remove the bullet from the game    
+
+
 
 bullet_group = pygame.sprite.Group()   #create a group for the bullets
 
