@@ -20,11 +20,17 @@ GRAVITY = 0.75   #set the gravity variable
 moving_left = False
 moving_right = False
 shoot=False
+grenade=False
+grenade_thrown=False
 
 #load images
 #bullet
 bullet_img = pygame.image.load('graphics/icons/bullet.png').convert_alpha()   #load the bullet image
- 
+
+#grenade
+grenade_img = pygame.image.load('graphics/icons/grenade.png').convert_alpha()   #load the grenade image
+
+
 #define colors
 BG = (144,201,120)   #background color
 RED = (255,0,0)   #red color
@@ -35,7 +41,7 @@ def draw_bg():   #function to draw the bg
     
  
 class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits from the pygame sprite class
-    def __init__(self, char_type ,player_x, player_y, scale,speed,ammo):
+    def __init__(self, char_type ,player_x, player_y, scale,speed,ammo,grenades):
         pygame.sprite.Sprite.__init__(self)   #initialize the sprite class
         self.alive = True   #set the alive variable to true
         self.char_type = char_type   #set the character type
@@ -43,6 +49,7 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
         self.ammo = ammo  #set the ammo of the player
         self.start_ammo = ammo   #set the starting ammo of the player
         self.shoot_cooldown = 0   #set the shoot cooldown to 0
+        self.grenades = grenades   #set the grenades of the player
         self.health = 100   #set the health of the player
         self.max_health = self.health   #set the max health of the player
         self.vel_y = 0   #set the vertical velocity of the player
@@ -195,11 +202,47 @@ class Bullet(pygame.sprite.Sprite):   #create a bullet class that inherits from 
                 self.kill()   #remove the bullet from the game    
 
 
+class Grenade(pygame.sprite.Sprite):   #create a bullet class that inherits from the pygame sprite class
+    def __init__(self, x, y, direction):
+        pygame.sprite.Sprite.__init__(self)   #initialize the sprite class
+        self.timer = 100   #set the timer of the grenade
+        self.vel_y = -11   #set the vertical velocity of the grenade
+        self.speed = 7   #set the speed of the bullet
+        self.image = grenade_img   #set the image of the bullet
+        self.rect = self.image.get_rect()   #create a rectangle for the bullet
+        self.rect.center = (x,y)   #set the position of the bullet
+        self.direction = direction   #set the direction of the bullet
+
+    def update(self):
+        #move grenade
+        self.vel_y += GRAVITY   #apply gravity to the vertical velocity of the grenade
+        dx = self.direction * self.speed   #set the horizontal velocity of the grenade
+        dy = self.vel_y   #set the vertical velocity of the grenade
+
+        #check for collision with the ground
+        if self.rect.bottom + dy > 300:   #if the grenade is below the ground
+            dy = 300 - self.rect.bottom   #set the dy to the distance to the ground
+            self.speed=0   #set the speed of the grenade to 0
+            
+        #check collision with walls
+        if self.rect.left + dx < 0 or self.rect.right + dx > screen_width:   #if the grenade is off the screen
+            self.direction *= -1   #reverse the direction of the grenade
+            dx = self.direction * self.speed   #set the horizontal velocity of the grenade
+        #update position
+        self.rect.x += dx   #update the x position of the grenade
+        self.rect.y += dy   #update the y position of the grenade
+
+        #countdown timer
+        self.timer -= 1   #decrease the timer by 1
+        if self.timer <= 0:   #if the timer is less than or equal to 0
+            self.kill()   #remove the grenade from the game
+
 
 bullet_group = pygame.sprite.Group()   #create a group for the bullets
+grenade_group = pygame.sprite.Group()   #create a group for the grenades
 
-player = Soldier('player',200, 200, 3,5,20)   #create a player object
-enemy = Soldier('enemy',400, 200, 3,5,20) 
+player = Soldier('player',200, 200, 3,5,20,5)   #create a player object
+enemy = Soldier('enemy',400, 200, 3,5,20,0) 
 # player2= Soldier(400, 200, 3)   #create a second player object
  
  
@@ -217,6 +260,8 @@ while run: #keep running the game
     #update and draw groups
     bullet_group.update()   #update the bullets
     bullet_group.draw(screen)   #draw the bullets on the screen
+    grenade_group.update()   #update the grenades
+    grenade_group.draw(screen)   #draw the grenades on the screen
 
     #update player actions
     if player.alive:
@@ -224,6 +269,15 @@ while run: #keep running the game
         if shoot:
             player.shoot()   #call the shoot function of the player
             shoot=False   #reset the shoot variable to false
+        #throw grenades
+        elif grenade and grenade_thrown==False and player.grenades>0:
+            grenade=Grenade(player.player_rect.centerx + (0.5 * player.player_rect.size[0] * player.direction), \
+                            player.player_rect.top, player.direction)  #create a grenade object
+            grenade_group.add(grenade)   #add the grenade to the grenade group
+            #reduce grenade count
+            player.grenades -= 1
+            grenade_thrown=True
+            
         if player.in_air:
             player.update_action(2)   #2: jump
         elif moving_left or moving_right:
@@ -248,7 +302,8 @@ while run: #keep running the game
                 player.jump=True
             if event.key == pygame.K_e and player.alive:
                 player.jump=True
-            
+            if event.key == pygame.K_q:
+                grenade=True
             if event.key == pygame.K_ESCAPE:   #if the escape key is pressed
                 run = False   #stop running the game
  
@@ -258,6 +313,9 @@ while run: #keep running the game
                 moving_left = False    #stop moving the player left
             if event.key == pygame.K_d:    #if the d key is released
                 moving_right = False    #stop moving plyr right
+            if event.key == pygame.K_q:
+                grenade=False
+                grenade_thrown=False
 
         #mouse clicks
         if event.type == pygame.MOUSEBUTTONDOWN:   #if a mouse button is pressed
