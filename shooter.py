@@ -1,6 +1,7 @@
 import pygame
 import os
- 
+import random
+
 pygame.init()   #initialize pygame
  
 screen_width = 800
@@ -57,7 +58,7 @@ def draw_bg():   #function to draw the bg
     screen.fill(BG)
     pygame.draw.line(screen, RED, (0, 300), (screen_width, 300))   #draw a red line across the screen at y=300
     
- 
+
 class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits from the pygame sprite class
     def __init__(self, char_type ,player_x, player_y, scale,speed,ammo,grenades):
         pygame.sprite.Sprite.__init__(self)   #initialize the sprite class
@@ -80,7 +81,12 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
         self.frame_index=0   #set the index of the animation list
         self.action=0 
         self.update_time = pygame.time.get_ticks()   #get the current time
-        
+        #ai specific variables
+        self.move_counter = 0   #set the move counter to 0
+        self.vision = pygame.Rect(0,0,150,20)   #create a rectangle for the vision of the enemy
+        self.idling = False   #set the idling variable to false
+        self.idling_counter = 0   #set the idling counter to 0
+
         #load all images for the players
         animation_types = ['Idle', 'Run','Jump','Death']   #create a list of the animation types
         for animation in animation_types:   #loop through the animation types   
@@ -150,10 +156,54 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
     def shoot(self):
         #shoot bullets
         if self.shoot_cooldown == 0 and self.ammo > 0:   #if the shoot cooldown is 0 and the player has ammo
-            self.shoot_cooldown = 20   #set the shoot cooldown to 20
-            self.ammo -= 1   #decrease the ammo by 1
-            bullet = Bullet(self.player_rect.centerx + (0.6 * self.player_rect.size[0] * self.direction), self.player_rect.centery, self.direction)   #create a bullet object
-            bullet_group.add(bullet)   #add the bullet to the bullet group
+            if self.char_type == 'enemy':
+                self.shoot_cooldown = 40   #set the shoot cooldown to 90
+            else:
+                self.shoot_cooldown = 20   #set the shoot cooldown to 20
+                self.ammo -= 1   #decrease the ammo by 1
+                bullet = Bullet(self.player_rect.centerx + (0.75 * self.player_rect.size[0] * self.direction), self.player_rect.centery, self.direction)   #create a bullet object
+                bullet_group.add(bullet)   #add the bullet to the bullet group
+
+    def ai(self):
+
+        #AI for enemy soldier
+        if self.alive and player.alive:   #if the enemy is alive and the player is alive
+            if self.idling == False and random.randint(1, 200) == 1:   #if the enemy is not idling and a random number between 1 and 200 is 1
+                self.update_action(0)   #set the action to idle
+                self.idling = True   #set the idling variable to true
+                self.idling_counter = 50   #set the idling counter to 50
+            
+            #check if the ai in near the player
+            if self.vision.colliderect(player.player_rect):   #if the vision rectangle collides with the player rectangle
+                #stop running and face the player
+                self.update_action(0)   #set the action to idle
+                #shoot
+                self.shoot()
+            else:
+                if self.idling == False:   #if the enemy is not idling 
+                    
+                    if self.direction == 1:   #if the direction is right
+                        ai_moving_right = True   #set the ai moving right variable to true
+                    else:
+                        ai_moving_right = False   #set the ai moving right variable to false
+                    ai_moving_left = not ai_moving_right   #set the ai moving left variable to the opposite of the ai moving right variable
+                    self.move(ai_moving_left,ai_moving_right)   #move the enemy based on the ai moving left and right variables
+                    self.update_action(1)   #set the action to run
+                    self.move_counter += 1   #increase the move counter by 1
+                    #update ai vision
+                    self.vision.center = (self.player_rect.centerx + 75 * self.direction, self.player_rect.centery)   #set the center of the vision rectangle to the center of the player rectangle plus 75 pixels in the direction the player is facing
+                    pygame.draw.rect(screen, (255, 255, 255), self.vision)   #draw the vision rectangle on the screen
+
+                    #update ai action
+                    if self.move_counter > TILE_SIZE:   #if the move counter is greater than the tile size
+                        self.direction *= -1   #reverse the direction of the enemy
+                        self.move_counter = 0   #reset the move counter to 0
+                else:
+                    self.idling_counter -= 1   #decrease the idling counter by 1
+                    if self.idling_counter <= 0:   #if the idling counter is less than or equal to 0
+                        self.idling = False   #set the idling variable to false
+                        self.idling_counter = 50   #reset the idling counter to 50
+                
 
     def update_animation(self):
         #update animation
@@ -364,10 +414,10 @@ grenade_box = ItemBox('Grenade', 400, 260)   #create a grenade item box
 item_box_group.add(grenade_box)   #add the grenade item box to the item box
 
 
-player = Soldier('player',200, 200, 3,5,20,5)   #create a player object
+player = Soldier('player',200, 200, 1.65,5,20,5)   #create a player object
 health_bar = HealthBar(10, 10, player.health, player.max_health)   #create a health bar object
-enemy = Soldier('enemy',400, 200, 3,5,20,0) 
-enemy2 = Soldier('enemy',300, 300, 3,5,20,0)
+enemy = Soldier('enemy',500, 200, 1.65,2,20,0)   #create an enemy object
+enemy2 = Soldier('enemy',300, 200, 1.65,2,20,0)   #create a second enemy object
 enemy_group.add(enemy)   #add the enemy to the enemy group
 enemy_group.add(enemy2)   #add the second enemy to the enemy group
 # player2= Soldier(400, 200, 3)   #create a second player object
@@ -395,6 +445,7 @@ while run: #keep running the game
     player.draw()   #draw the player on the screen
 
     for enemy in enemy_group:   #loop through the enemies
+        enemy.ai()   #call the ai function of the enemy
         enemy.update()
         enemy.draw()   #draw the enemy on the screen
         
