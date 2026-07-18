@@ -57,7 +57,7 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
         self.update_time = pygame.time.get_ticks()   #get the current time
         
         #load all images for the players
-        animation_types = ['Idle', 'Run','Jump']   #create a list of the animation types
+        animation_types = ['Idle', 'Run','Jump','Death']   #create a list of the animation types
         for animation in animation_types:   #loop through the animation types   
             #reset temporary list of images
             temp_list = []   #create a temporary list to hold the images
@@ -78,7 +78,7 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
  
     def update(self):
         self.update_animation()   #call the update animation function
-           #call the check alive function
+        self.check_alive()   #call the check alive function
         #update cooldowns
         if self.shoot_cooldown > 0:   #if the shoot cooldown is greater than 0
             self.shoot_cooldown -= 1   #decrease the shoot cooldown by 1
@@ -140,8 +140,12 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
             self.frame_index +=1
  
         if self.frame_index>=len(self.animation_list[self.action]):   #if the frame index is greater than or equal to the length of the animation list
-            self.frame_index = 0   #reset the frame index to 0
-            
+            if self.action==3:   #if the action is death
+                self.frame_index = len(self.animation_list[self.action]) - 1   #set the frame index to the last frame in the animation list
+            else:
+                self.frame_index = 0   #reset the frame index to 0
+        
+
     
     def update_action(self, new_action):
         #check if the new action is different to the previous one
@@ -150,6 +154,14 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
             #update the animation settings
             self.frame_index = 0   #reset the frame index to 0
             self.update_time = pygame.time.get_ticks()   #update the update time
+
+    def check_alive(self):
+        #check if the player is alive
+        if self.health <= 0:   #if the player's health is less than or equal to 0
+            self.health = 0   #set the player's health to 0
+            self.alive = False   #set the alive variable to false
+            self.speed = 0   #set the speed of the player to 0
+            self.update_action(3)   #set the action to death
 
     def draw(self):
         screen.blit(pygame.transform.flip(self.player_img, self.flip, False), self.player_rect)   #draw the player on the screen
@@ -198,6 +210,8 @@ while run: #keep running the game
  
     player.update()
     player.draw()   #draw the player on the screen
+    
+    enemy.update()
     enemy.draw()   #draw the enemy on the screen
     
     #update and draw groups
