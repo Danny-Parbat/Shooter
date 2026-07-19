@@ -1,12 +1,13 @@
 import pygame
 import os
 import random
+import csv  
 
 pygame.init()   #initialize pygame
  
 screen_width = 800
 screen_height = int(screen_width * 0.8)
- 
+
 screen = pygame.display.set_mode((screen_width, screen_height))   #create a screen 
 pygame.display.set_caption("Shooter")   #set the title of the window
  
@@ -16,8 +17,12 @@ fps=60
 
 #define game variables
 GRAVITY = 0.75   #set the gravity variable
-TILE_SIZE = 40  #set the tile size variable
- 
+rows = 16   #set the number of rows in the level
+cols = 150   #set the number of columns in the level
+TILE_SIZE = screen_height // rows   #set the tile size based on the screen height and number of rows
+TILE_TYPES = 21   #set the number of tile types
+level = 1   #set the level variable
+
 #define player actions var
 moving_left = False
 moving_right = False
@@ -26,6 +31,13 @@ grenade=False
 grenade_thrown=False
 
 #load images
+#store tiles in a list
+img_list = []   #create an empty list to hold the tile images
+for x in range(TILE_TYPES):   #loop through the number of tile types
+    img = pygame.image.load(f'graphics/tiles/{x}.png')   #load the tile image
+    img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))   #scale the tile image to the tile size
+    img_list.append(img)   #add the tile image to the list
+
 #bullet
 bullet_img = pygame.image.load('graphics/icons/bullet.png').convert_alpha()   #load the bullet image
 
@@ -240,7 +252,53 @@ class Soldier(pygame.sprite.Sprite):    #create a soldier class that inherits fr
 
     def draw(self):
         screen.blit(pygame.transform.flip(self.player_img, self.flip, False), self.player_rect)   #draw the player on the screen
-        
+
+class World():   #create a world class
+    def __init__(self):
+        self.obstacle_list = []   #create a list to hold the obstacles
+
+    def process_data(self, data):
+        self.level_length = len(data[0])   #set the level length to the length of the first row in the data
+        #iterate through each value in the level data file
+        for y, row in enumerate(data):   #loop through the rows in the data
+            for x, tile in enumerate(row):   #loop through the tiles in the row
+                if tile >= 0:   #if the tile is greater than or equal to 0
+                    img = img_list[tile]   #set the image to the tile in the image list
+                    img_rect = img.get_rect()   #create a rectangle for the image
+                    img_rect.x = x * TILE_SIZE   #set the x position of the rectangle to the x position of the tile multiplied by the tile size
+                    img_rect.y = y * TILE_SIZE   #set the y position of the rectangle to the y position of the tile multiplied by the tile size
+                    tile_data = (img, img_rect)   #create a tuple for the image and rectangle
+                    if tile >= 0 and tile <= 8:   #if the tile is between 0 and 8
+                        self.obstacle_list.append(tile_data)   #add the tuple tile_data to the obstacle list
+                    elif tile >= 9 and tile <= 10:   #if the tile is between 9 and 10
+                        pass    #water
+                    elif tile >= 11 and tile <= 14:   #if the tile is between 11 and 14
+                        pass    #decoration
+                    elif tile == 15:   #create player
+                        player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 20, 5)   #create a player object
+                        health_bar = HealthBar(10, 10, player.health, player.max_health)   #create a health bar object
+                    #we shifted this code here so that spawn can vary depending on the level data
+                    elif tile == 16:   #create enemies
+                        enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 2, 20, 0)   #create an enemy object
+                        enemy_group.add(enemy)   #add the enemy to the enemy group
+                    elif tile == 17:
+                        #create ammo box
+                        item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)   #create an ammo item box
+                        item_box_group.add(item_box)   #add the ammo item box to the item box group
+                    elif tile == 18:
+                        #create grenade box
+                        item_box = ItemBox('Grenade', x * TILE_SIZE, y * TILE_SIZE)   #create a grenade item box
+                        item_box_group.add(item_box)   #add the grenade item box to the item box group
+                    elif tile == 19:
+                        #create health box
+                        item_box = ItemBox('Health', x * TILE_SIZE, y * TILE_SIZE)   #create a health item box
+                        item_box_group.add(item_box)   #add the health item box to the item box group
+                    elif tile == 20:
+                        pass    #exit
+                    
+    def draw(self):
+        for tile in self.obstacle_list:   #loop through each tile in the obstacle list
+            screen.blit(tile[0], tile[1])   #draw each tile on the screen
 
 class ItemBox(pygame.sprite.Sprite):   #create a bullet class that inherits from the pygame sprite class
     def __init__(self, item_type, x,y):
@@ -405,24 +463,36 @@ grenade_group = pygame.sprite.Group()   #create a group for the grenades
 explosion_group = pygame.sprite.Group()   #create a group for the explosions
 item_box_group = pygame.sprite.Group()   #create a group for the item boxes
 
-#temp create item boxes
-item_box = ItemBox('Health', 200, 260)   #create a health item box
-item_box_group.add(item_box)   #add the health item box to the item box group
-ammo_box = ItemBox('Ammo', 300, 260)   #create an ammo item box
-item_box_group.add(ammo_box)   #add the ammo item box to the item box
-grenade_box = ItemBox('Grenade', 400, 260)   #create a grenade item box
-item_box_group.add(grenade_box)   #add the grenade item box to the item box
+# #temp create item boxes
+# item_box = ItemBox('Health', 200, 260)   #create a health item box
+# item_box_group.add(item_box)   #add the health item box to the item box group
+# ammo_box = ItemBox('Ammo', 300, 260)   #create an ammo item box
+# item_box_group.add(ammo_box)   #add the ammo item box to the item box
+# grenade_box = ItemBox('Grenade', 400, 260)   #create a grenade item box
+# item_box_group.add(grenade_box)   #add the grenade item box to the item box
 
 
-player = Soldier('player',200, 200, 1.65,5,20,5)   #create a player object
-health_bar = HealthBar(10, 10, player.health, player.max_health)   #create a health bar object
-enemy = Soldier('enemy',500, 200, 1.65,2,20,0)   #create an enemy object
-enemy2 = Soldier('enemy',300, 200, 1.65,2,20,0)   #create a second enemy object
-enemy_group.add(enemy)   #add the enemy to the enemy group
-enemy_group.add(enemy2)   #add the second enemy to the enemy group
-# player2= Soldier(400, 200, 3)   #create a second player object
- 
- 
+# player = Soldier('player',200, 200, 1.65,5,20,5)   #create a player object
+# health_bar = HealthBar(10, 10, player.health, player.max_health)   #create a health bar object
+# enemy = Soldier('enemy',500, 200, 1.65,2,20,0)   #create an enemy object
+# enemy2 = Soldier('enemy',300, 200, 1.65,2,20,0)   #create a second enemy object
+# enemy_group.add(enemy)   #add the enemy to the enemy group
+# enemy_group.add(enemy2)   #add the second enemy to the enemy group
+# # player2= Soldier(400, 200, 3)   #create a second player object
+
+#create empty tile list
+world_data = []   #create an empty list for the world data
+for row in range(rows):   #loop through the number of rows
+    r = [-1] * cols   #create a list of -1's for the number of columns
+    world_data.append(r)
+#load in level data and create world
+with open(f'level{level}_data.csv', newline='') as csvfile:   #open the level data file
+    reader = csv.reader(csvfile, delimiter=',')   #create a csv reader object
+    for x, row in enumerate(reader):   #loop through the rows in the csv file
+        for y, tile in enumerate(row):   #loop through the tiles in the row
+            world_data[x][y] = int(tile)   #set the tile in the world data to the value in the csv file
+
+
 run = True
 while run: #keep running the game
     clock.tick(fps)   #set the fps
